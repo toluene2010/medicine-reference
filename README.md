@@ -38,5 +38,8 @@ Replace `www/data/medicines.json.gz` with a gzip-compressed JSON array using the
 This is a reference/search application, not a prescribing or diagnostic tool. Always verify doses, interactions, contraindications, pregnancy information and other clinical decisions against current authoritative references and local regulatory requirements.
 
 
-## Android WebView compatibility
-The workflows bundle the local pako gzip decoder as a fallback for Android System WebView versions without DecompressionStream.
+## Android database troubleshooting
+The APK workflow verifies that `www/data/medicines.json.gz` is copied into the Capacitor Android public assets before compiling. The app reports the exact attempted asset URL and HTTP status if the file cannot be loaded.
+
+## Latest update
+This complete package includes Android database request diagnostics and navigation controls on medicine detail screens: Back to results, Home, and Clear search. The service-worker cache version is incremented so clients fetch the updated shell.
