@@ -43,3 +43,6 @@ The APK workflow verifies that `www/data/medicines.json.gz` is copied into the C
 
 ## Latest update
 This complete package includes Android database request diagnostics and navigation controls on medicine detail screens: Back to results, Home, and Clear search. The service-worker cache version is incremented so clients fetch the updated shell.
+
+## Gzip decompression compatibility
+The workflows install the `pako` runtime dependency and copy its browser build to `www/vendor/pako_inflate.min.js` before deployment or Capacitor synchronization. The application uses this bundled decompressor instead of relying on the browser's `DecompressionStream`, improving compatibility with Android WebView. The Pako script is loaded before `app.js` and precached by the service worker.
