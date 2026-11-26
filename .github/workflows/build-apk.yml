@@ -1,152 +1,42 @@
-
 name: Build Android APK
-
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-
+    branches: [main]
 permissions:
   contents: read
-
 jobs:
   build:
-    name: Build and Verify Medicine Reference APK
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Download repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # 2. Install Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      # 3. Install Java for Android
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
-
-      # 4. Install dependencies
-      - name: Install dependencies
-        run: npm install
-
-      # 5. Install Pako decompression library
-      - name: Install Pako browser library
-        run: |
-          mkdir -p www/vendor
-          cp node_modules/pako/dist/pako_inflate.min.js www/vendor/pako_inflate.min.js
-
-      # 6. Check source database
-      - name: Verify source database
-        run: |
-          test -s www/data/medicines.json.gz
-          gzip -t www/data/medicines.json.gz
-          ls -lh www/data/medicines.json.gz
-
-      # 7. Generate Android project
-      - name: Prepare Android project
-        run: |
-          npx cap add android
-          npx cap sync android
-
-      # 8. Explicitly copy database and Pako
-      - name: Copy web assets into Android
+      - run: npm install
+      - run: mkdir -p www/vendor && cp node_modules/pako/dist/pako_inflate.min.js www/vendor/pako_inflate.min.js
+      - run: npx cap add android
+      - run: npx cap sync android
+      - name: Explicitly copy web assets into Android app
         run: |
           mkdir -p android/app/src/main/assets/public/data
           mkdir -p android/app/src/main/assets/public/vendor
-
-          cp -f www/data/medicines.json.gz \
-            android/app/src/main/assets/public/data/medicines.json.gz
-
-          cp -f www/vendor/pako_inflate.min.js \
-            android/app/src/main/assets/public/vendor/pako_inflate.min.js
-
-      # 9. Verify Android assets
-      - name: Verify Android database assets
+          cp -f www/data/medicines.json.gz android/app/src/main/assets/public/data/medicines.json.gz
+          cp -f www/vendor/pako_inflate.min.js android/app/src/main/assets/public/vendor/pako_inflate.min.js
+      - name: Verify Android database asset before APK compilation
         run: |
+          test -s www/data/medicines.json.gz
           test -s android/app/src/main/assets/public/data/medicines.json.gz
-          test -s android/app/src/main/assets/public/vendor/pako_inflate.min.js
-
-          cmp www/data/medicines.json.gz \
-            android/app/src/main/assets/public/data/medicines.json.gz
-
+          cmp www/data/medicines.json.gz android/app/src/main/assets/public/data/medicines.json.gz
           gzip -t android/app/src/main/assets/public/data/medicines.json.gz
-
-          echo "Android database assets verified successfully."
-
-      # 10. Compile APK
-      - name: Build Android APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-
-      # 11. Inspect actual compiled APK
-      - name: Inspect final APK assets
-        run: |
-          python3 - <<'PY'
-          import zipfile
-          import os
-
-          apk = "android/app/build/outputs/apk/debug/app-debug.apk"
-
-          print("APK exists:", os.path.exists(apk))
-
-          if not os.path.exists(apk):
-              raise SystemExit("APK FILE NOT FOUND")
-
-          print("APK size:", os.path.getsize(apk))
-
-          with zipfile.ZipFile(apk, "r") as z:
-              names = z.namelist()
-
-              print("\nMEDICINE DATABASE:")
-              database = [
-                  n for n in names
-                  if "medicines.json.gz" in n
-              ]
-              print(database if database else "NOT FOUND")
-
-              print("\nPAKO LIBRARY:")
-              pako = [
-                  n for n in names
-                  if "pako_inflate.min.js" in n
-              ]
-              print(pako if pako else "NOT FOUND")
-
-              print("\nCAPACITOR WEB ASSETS:")
-              assets = [
-                  n for n in names
-                  if "assets/public/" in n
-              ]
-
-              print("\n".join(assets[:40]))
-
-              if not database or not pako:
-                  raise SystemExit(
-                      "APK ASSET VERIFICATION FAILED"
-                  )
-
-              for item in database:
-                  content = z.read(item)
-                  import gzip
-                  gzip.decompress(content)
-
-              print("\nSUCCESS: Database and Pako are inside APK.")
-          PY
-
-      # 12. Upload APK
-      - name: Upload Android APK
-        uses: actions/upload-artifact@v4
+          ls -lh android/app/src/main/assets/public/data/medicines.json.gz
+      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
         with:
           name: medicine-reference-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 30
