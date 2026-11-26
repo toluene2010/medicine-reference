@@ -49,3 +49,6 @@ The workflows install the `pako` runtime dependency and copy its browser build t
 
 ## Android asset packaging fix
 The Android workflow explicitly copies `www/data/medicines.json.gz` and the bundled Pako browser script into `android/app/src/main/assets/public/` after Capacitor sync, then verifies the database byte-for-byte and validates the gzip stream before compiling. This prevents an APK from being produced without the database asset.
+
+## Android database filename/content compatibility
+The app now tries both `data/medicines.json` and `data/medicines.json.gz`. It detects gzip from the file's magic bytes rather than trusting the extension, then uses Pako for gzip or UTF-8 JSON parsing for plain JSON. The APK inspection accepts either database filename and validates its actual content.
