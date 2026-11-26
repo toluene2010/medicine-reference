@@ -21,10 +21,18 @@ jobs:
       - run: mkdir -p www/vendor && cp node_modules/pako/dist/pako_inflate.min.js www/vendor/pako_inflate.min.js
       - run: npx cap add android
       - run: npx cap sync android
-      - name: Verify medicine database is included in Android assets
+      - name: Explicitly copy web assets into Android app
+        run: |
+          mkdir -p android/app/src/main/assets/public/data
+          mkdir -p android/app/src/main/assets/public/vendor
+          cp -f www/data/medicines.json.gz android/app/src/main/assets/public/data/medicines.json.gz
+          cp -f www/vendor/pako_inflate.min.js android/app/src/main/assets/public/vendor/pako_inflate.min.js
+      - name: Verify Android database asset before APK compilation
         run: |
           test -s www/data/medicines.json.gz
           test -s android/app/src/main/assets/public/data/medicines.json.gz
+          cmp www/data/medicines.json.gz android/app/src/main/assets/public/data/medicines.json.gz
+          gzip -t android/app/src/main/assets/public/data/medicines.json.gz
           ls -lh android/app/src/main/assets/public/data/medicines.json.gz
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
