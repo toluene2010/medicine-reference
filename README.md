@@ -36,3 +36,7 @@ Replace `www/data/medicines.json.gz` with a gzip-compressed JSON array using the
 
 ## Important
 This is a reference/search application, not a prescribing or diagnostic tool. Always verify doses, interactions, contraindications, pregnancy information and other clinical decisions against current authoritative references and local regulatory requirements.
+
+
+## Android WebView compatibility
+The workflows bundle the local pako gzip decoder as a fallback for Android System WebView versions without DecompressionStream.
