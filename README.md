@@ -46,3 +46,6 @@ This complete package includes Android database request diagnostics and navigati
 
 ## Gzip decompression compatibility
 The workflows install the `pako` runtime dependency and copy its browser build to `www/vendor/pako_inflate.min.js` before deployment or Capacitor synchronization. The application uses this bundled decompressor instead of relying on the browser's `DecompressionStream`, improving compatibility with Android WebView. The Pako script is loaded before `app.js` and precached by the service worker.
+
+## Android asset packaging fix
+The Android workflow explicitly copies `www/data/medicines.json.gz` and the bundled Pako browser script into `android/app/src/main/assets/public/` after Capacitor sync, then verifies the database byte-for-byte and validates the gzip stream before compiling. This prevents an APK from being produced without the database asset.
