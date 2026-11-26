@@ -4,19 +4,57 @@ function clean(v){return (v??"").toString().trim()}function escapeHtml(s){return
 function dbGet(){return new Promise((resolve,reject)=>{let r=indexedDB.open("medicine-reference",1);r.onupgradeneeded=()=>r.result.createObjectStore("cache");r.onsuccess=()=>{let q=r.result.transaction("cache").objectStore("cache").get("records");q.onsuccess=()=>resolve(q.result||null);q.onerror=()=>reject(q.error)};r.onerror=()=>reject(r.error)})}
 function dbPut(value){return new Promise((resolve,reject)=>{let r=indexedDB.open("medicine-reference",1);r.onsuccess=()=>{let tx=r.result.transaction("cache","readwrite");tx.objectStore("cache").put(value,"records");tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)};r.onerror=()=>reject(r.error)})}
 async function fetchDatabaseFile(){
-  const candidates=[new URL("data/medicines.json.gz",document.baseURI).href,new URL("./data/medicines.json.gz",location.href).href,"/data/medicines.json.gz"];
+  const base=document.baseURI;
+  const candidates=[
+    new URL("data/medicines.json",base).href,
+    new URL("data/medicines.json.gz",base).href,
+    new URL("./data/medicines.json",location.href).href,
+    new URL("./data/medicines.json.gz",location.href).href
+  ];
   const attempts=[];
   for(const url of [...new Set(candidates)]){
-    try{const response=await fetch(url,{cache:"no-store"});if(response.ok)return {response,url};attempts.push(`${url} → HTTP ${response.status}`)}
-    catch(err){attempts.push(`${url} → ${err.message}`)}
+    try{
+      const response=await fetch(url,{cache:"no-store"});
+      if(response.ok)return {response,url};
+      attempts.push(`${url} → HTTP ${response.status}`);
+    }catch(err){attempts.push(`${url} → ${err.message}`);}
   }
-  throw new Error("Database file request failed. Tried: "+attempts.join(" | ")+`. App base: ${document.baseURI}`);
+  throw new Error("Database request failed. Tried: "+attempts.join(" | ")+`. App base: ${base}`);
 }
-async function loadData(){try{$("status").textContent="Checking saved offline database…";let cached=await dbGet();if(cached&&Array.isArray(cached)&&cached.length){medicines=cached;$ ("status").textContent=`Ready offline · ${medicines.length.toLocaleString()} medicine/brand records`;return}
-$("status").textContent="Downloading the complete database (first launch only)…";const {response,url}=await fetchDatabaseFile();
-if(!window.pako||typeof window.pako.ungzip!=="function")throw Error(`Database file was found at ${url}, but the bundled Pako decompressor is missing. Check www/vendor/pako_inflate.min.js and rebuild.`);
-const compressed=new Uint8Array(await response.arrayBuffer());const text=window.pako.ungzip(compressed,{to:"string"});medicines=JSON.parse(text);if(!Array.isArray(medicines)||!medicines.length)throw Error("Database file was downloaded but did not contain a valid medicine record array.");await dbPut(medicines);$("status").textContent=`Database ready · ${medicines.length.toLocaleString()} medicine/brand records saved for offline use.`
-}catch(e){const detail=e&&e.message?e.message:String(e);$("status").textContent="Database loading failed: "+detail;$("results").innerHTML='<div class="empty">Database could not be opened. Copy the full error above and send it for diagnosis.</div>';throw e}}
+async function loadData(){
+  try{
+    $("status").textContent="Checking saved offline database…";
+    let cached=await dbGet();
+    if(cached&&Array.isArray(cached)&&cached.length){
+      medicines=cached;
+      $("status").textContent=`Ready offline · ${medicines.length.toLocaleString()} medicine/brand records`;
+      return;
+    }
+    $("status").textContent="Loading the complete medicine database…";
+    const {response,url}=await fetchDatabaseFile();
+    const bytes=new Uint8Array(await response.arrayBuffer());
+    let text;
+    // Detect gzip by its magic bytes (1F 8B), not by filename.
+    const isGzip=bytes.length>2&&bytes[0]===0x1f&&bytes[1]===0x8b;
+    if(isGzip){
+      if(!window.pako||typeof window.pako.ungzip!=="function")
+        throw new Error(`The database at ${url} is gzip-compressed, but the Pako decompressor is missing.`);
+      text=window.pako.ungzip(bytes,{to:"string"});
+    }else{
+      text=new TextDecoder("utf-8").decode(bytes);
+    }
+    medicines=JSON.parse(text);
+    if(!Array.isArray(medicines)||!medicines.length)
+      throw new Error(`The file at ${url} was read, but it did not contain a valid medicine record array.`);
+    await dbPut(medicines);
+    $("status").textContent=`Database ready · ${medicines.length.toLocaleString()} medicine/brand records saved for offline use.`;
+  }catch(e){
+    const detail=e&&e.message?e.message:String(e);
+    $("status").textContent="Database loading failed: "+detail;
+    $("results").innerHTML='<div class="empty">Database could not be opened. Copy the full error above and send it for diagnosis.</div>';
+    throw e;
+  }
+}
 function setupFilters(){let types=[...new Set(medicines.map(x=>clean(x["Medicine Type"])).filter(Boolean))].sort();let classes=[...new Set(medicines.map(x=>clean(x["Therapeutic Class"])).filter(Boolean))].sort();types.forEach(v=>$("typeFilter").add(new Option(v,v)));classes.forEach(v=>$("classFilter").add(new Option(v,v)))}
 function search(){let q=$("search").value.toLowerCase().trim(),type=$("typeFilter").value,cls=$("classFilter").value;filtered=[];for(let i=0;i<medicines.length;i++){let m=medicines[i];if(type&&m["Medicine Type"]!==type)continue;if(cls&&m["Therapeutic Class"]!==cls)continue;if(q){let hay=[m["Brand Name"],m["Generic_Title"],m["Therapeutic Class"],m["Company"],m["Strength"],m["Dosage Form"]].join(" ").toLowerCase();if(!hay.includes(q))continue}filtered.push(i);if(filtered.length>=250)break}renderResults()}
 function renderResults(){ $("count").textContent=`${filtered.length.toLocaleString()}${filtered.length===250?"+":""} found`;if(!filtered.length){$("results").innerHTML='<div class="empty">No matching medicine found. Try another spelling or remove a filter.</div>';return}
