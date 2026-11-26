@@ -1,0 +1,9 @@
+{
+  "appId": "com.medicinereference.app",
+  "appName": "Medicine Reference",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}

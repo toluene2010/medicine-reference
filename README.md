@@ -1,0 +1,38 @@
+# Medicine Reference
+
+A single-source application delivered as:
+- GitHub Pages progressive web app (PWA)
+- Android APK built from the same `www/` application using Capacitor
+
+## Database
+The complete source dataset is bundled at `www/data/medicines.json.gz`. The app decompresses it on first launch and saves the complete records in IndexedDB for subsequent offline use. All 26,205 source rows are retained, including multiple brand rows belonging to the same generic medicine.
+
+The dataset's source field identifies MedEx Bangladesh. Content is displayed as supplied; this application does not independently validate clinical accuracy, current registration status, local availability, or Nigerian-approved prescribing information.
+
+## Run locally
+Requires Node.js 20+.
+```bash
+npm install
+npm run android:add
+npm run android:sync
+```
+Open `android/` in Android Studio to build/install, or run:
+```bash
+cd android
+./gradlew assembleDebug
+```
+
+## GitHub Pages
+1. Push this repository to GitHub.
+2. In repository Settings → Pages, select **GitHub Actions** as the build/deployment source.
+3. The included workflow publishes the `www/` folder.
+4. Your app URL will be `https://YOUR-USERNAME.github.io/YOUR-REPOSITORY/`.
+
+## APK build through GitHub Actions
+The workflow `Build Android APK` creates the Android project, syncs the shared web app, builds a debug APK and uploads it as a workflow artifact. Download the APK from the completed workflow run under **Artifacts** and install it on your Android phone (allow installation from that source when Android prompts).
+
+## Updating the database
+Replace `www/data/medicines.json.gz` with a gzip-compressed JSON array using the same 20 field names. Increment the service worker cache version in `www/sw.js` when publishing an update.
+
+## Important
+This is a reference/search application, not a prescribing or diagnostic tool. Always verify doses, interactions, contraindications, pregnancy information and other clinical decisions against current authoritative references and local regulatory requirements.

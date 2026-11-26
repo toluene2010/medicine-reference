@@ -1,0 +1,18 @@
+{
+  "name": "medicine-reference",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Medicine Reference PWA and Android app",
+  "scripts": {
+    "android:add": "cap add android",
+    "android:sync": "cap sync android",
+    "android:build": "cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/core": "^6.2.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.1"
+  }
+}
