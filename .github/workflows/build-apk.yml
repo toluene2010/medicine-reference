@@ -34,7 +34,7 @@ jobs:
           cmp www/data/medicines.json.gz android/app/src/main/assets/public/data/medicines.json.gz
           gzip -t android/app/src/main/assets/public/data/medicines.json.gz
           ls -lh android/app/src/main/assets/public/data/medicines.json.gz
-      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+            - name: Verify database inside final APK         run: |           APK=android/app/build/outputs/apk/debug/app-debug.apk           echo "Checking final APK..."           unzip -l "$APK" | grep "medicines.json.gz"           unzip -l "$APK" | grep "pako_inflate.min.js"
       - uses: actions/upload-artifact@v4
         with:
           name: medicine-reference-debug-apk
